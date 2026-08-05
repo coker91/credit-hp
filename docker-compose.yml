@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ---------------------------------------------------------------------------
   # 1. Laravel 11 Application Container
@@ -8,7 +6,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: credit-hp-app:latest
     container_name: credit-hp-app
     restart: unless-stopped
     tty: true
@@ -75,9 +72,10 @@ services:
   # ---------------------------------------------------------------------------
   # 5. Evolution API Container (WhatsApp Gateway)
   # Repo: https://github.com/evolution-foundation/evolution-api
+  # Image: evolutionapi/evolution-api:v2.1.1
   # ---------------------------------------------------------------------------
   evolution-api:
-    image: atendai/evolution-api:v2.1.1
+    image: evolutionapi/evolution-api:v2.1.1
     container_name: credit-hp-evolution-api
     restart: unless-stopped
     ports:
