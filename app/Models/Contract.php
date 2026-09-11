@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Model;
 
 class Contract extends Model
 {
@@ -17,17 +17,19 @@ class Contract extends Model
         'product_id',
         'down_payment',
         'total_price',
-        'tenor_months',
-        'monthly_installment',
+        'tenor',
+        'installment',
         'start_date',
         'status',
+        'actual_cost_price',
     ];
 
     protected $casts = [
-        'down_payment'        => 'decimal:2',
-        'total_price'         => 'decimal:2',
-        'monthly_installment' => 'decimal:2',
-        'start_date'          => 'date',
+        'down_payment' => 'decimal:2',
+        'total_price' => 'decimal:2',
+        'installment' => 'decimal:2',
+        'start_date' => 'date',
+        'actual_cost_price' => 'decimal:2',
     ];
 
     /**

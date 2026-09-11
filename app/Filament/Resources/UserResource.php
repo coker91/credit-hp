@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
@@ -12,6 +13,13 @@ use Filament\Forms;
 use Filament\Tables;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Validation\Rules\Password;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;       
+use App\Filament\Resources\UserResource\Pages\CreateUser;
+use Illuminate\Support\Facades\Hash;
+use Filament\Pages\Page;
+
 
 class UserResource extends Resource
 {
@@ -31,30 +39,45 @@ class UserResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Pengguna')
                     ->schema([
-                        Forms\Components\TextInput::make('name')
+                        TextInput::make('name')
                             ->label('Nama Lengkap')
+                            ->placeholder('Input Nama Lengkap')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('email')
-                            ->label('Alamat Email')
-                            ->email()
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('password')
-                            ->label('Password')
+                        TextInput::make('username')
+                            ->label('Username')
+                            ->placeholder('Input Username')
+                            ->required(),
+                        TextInput::make('password')
                             ->password()
                             ->dehydrateStateUsing(fn($state) => Hash::make($state))
+                            ->label('Password')
+                            ->minLength(8)
+                            ->maxLength(255)
+                            ->revealable()
+                            ->rule(
+                                Password::min(8)
+                                    ->mixedCase()
+                                    ->numbers()
+                                    ->symbols()
+                            )
+                            ->dehydrateStateUsing(fn($state) => filled($state) ? Hash::make($state) : null)
+                            ->required(fn(Page $livewire) => $livewire instanceof CreateUser)
                             ->dehydrated(fn($state) => filled($state))
-                            ->required(fn(string $context): bool => $context === 'create'),
-                        // 🟢 Select Relasi Roles Spatie / Shield
-                        Forms\Components\Select::make('roles')
-                            ->label('Role / Hak Akses')
+                            ->placeholder(fn($record) => $record ? '********' : '')
+                            ->label(fn($record) => $record ? 'Change Password' : 'Password'),
+                        Select::make('roles')
                             ->relationship('roles', 'name')
+                            ->placeholder('Select Roles')
                             ->multiple()
                             ->preload()
                             ->searchable()
                             ->required(),
+                        Toggle::make('status')
+                            ->onColor('success')
+                            ->offColor('danger')
+                            ->label('Status')
+                            ->default(true),
                     ])
                     ->columns(2),
             ]);
@@ -89,6 +112,7 @@ class UserResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

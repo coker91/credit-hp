@@ -80,7 +80,6 @@ class PaymentsRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                // Action cepat untuk mencatat pelunasan angsuran
                 Tables\Actions\Action::make('markAsPaid')
                     ->label('Catat Pelunasan')
                     ->icon('heroicon-m-check-circle')

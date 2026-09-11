@@ -35,10 +35,12 @@ class MatrixCicilanPage extends Page
             })
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->whereHas('customer', fn ($c) => $c->where('name', 'like', "%{$this->search}%"))
-                      ->orWhereHas('product', fn ($p) => $p->where('model_name', 'like', "%{$this->search}%")
-                                                          ->orWhere('brand', 'like', "%{$this->search}%"))
-                      ->orWhere('contract_number', 'like', "%{$this->search}%");
+                    $q
+                        ->whereHas('customer', fn($c) => $c->where('name', 'like', "%{$this->search}%"))
+                        ->orWhereHas('product', fn($p) => $p
+                            ->where('model_name', 'like', "%{$this->search}%")
+                            ->orWhere('brand', 'like', "%{$this->search}%"))
+                        ->orWhere('contract_number', 'like', "%{$this->search}%");
                 });
             })
             ->orderBy('id', 'asc')
@@ -52,7 +54,7 @@ class MatrixCicilanPage extends Page
             return 7;
         }
 
-        return max(7, (int) $contracts->max('tenor_months'));
+        return max(7, (int) $contracts->max('tenor'));
     }
 
     public function getSummaryStatsProperty(): array
@@ -64,14 +66,18 @@ class MatrixCicilanPage extends Page
         $totalMonthlyLaba = 0;
 
         foreach ($contracts as $contract) {
-            $monthlyInstallment = (float) $contract->monthly_installment;
-            $tenor = max(1, (int) $contract->tenor_months);
-            $costPrice = (float) ($contract->product?->cost_price ?? 0);
+            $monthlyInstallment = (float) $contract->installment;
+            $tenor = max(1, (int) $contract->tenor);
 
-            // Modal bulanan = Modal Beli Produk / Tenor
-            $modalPerBulan = $tenor > 0 ? ($costPrice / $tenor) : 0;
-            // Laba bulanan = Cicilan Bulanan - Modal Bulanan
-            $labaPerBulan = max(0, $monthlyInstallment - $modalPerBulan);
+            $actualCostTotal = (float) (
+                $contract->actual_cost_price
+                    ?? $contract->product?->actual_cost_price
+                    ?? $contract->product?->cost_price
+                    ?? 0
+            );
+
+            $modalPerBulan = $tenor > 0 ? ($actualCostTotal / $tenor) : 0;
+            $labaPerBulan = round($monthlyInstallment - $modalPerBulan);
 
             $totalMonthlyInstallment += $monthlyInstallment;
             $totalMonthlyModal += $modalPerBulan;
@@ -84,10 +90,10 @@ class MatrixCicilanPage extends Page
 
         return [
             'total_installment' => $totalMonthlyInstallment,
-            'total_modal'       => $totalMonthlyModal,
-            'total_laba'        => $totalMonthlyLaba,
-            'margin_percent'    => $marginPercent,
-            'active_count'      => $contracts->count(),
+            'total_modal' => $totalMonthlyModal,
+            'total_laba' => $totalMonthlyLaba,
+            'margin_percent' => $marginPercent,
+            'active_count' => $contracts->count(),
         ];
     }
 
@@ -97,8 +103,8 @@ class MatrixCicilanPage extends Page
         if ($payment && $payment->status !== 'paid') {
             $payment->update([
                 'paid_amount' => $payment->amount,
-                'paid_at'     => now(),
-                'status'      => 'paid',
+                'paid_at' => now(),
+                'status' => 'paid',
             ]);
 
             Notification::make()
@@ -119,7 +125,7 @@ class MatrixCicilanPage extends Page
             $message = "Halo Bpk/Ibu *{$customer->name}*,\n\n"
                 . "Kami ingin mengingatkan angsuran cicilan HP Anda untuk No. Kontrak *{$payment->contract->contract_number}* (Cicilan Ke-{$payment->installment_number}) sebesar *{$nominal}* akan/telah jatuh tempo pada *{$dueDate}*.\n\n"
                 . "Mohon segera melakukan pembayaran. Abaikan jika sudah lunas.\n\n"
-                . "Terima kasih.";
+                . 'Terima kasih.';
 
             $sent = WaService::sendMessage($customer->phone_number, $message);
 

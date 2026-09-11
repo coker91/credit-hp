@@ -12,7 +12,6 @@ class CashflowChartWidget extends ChartWidget
 
     protected static ?int $sort = 2;
 
-    // 🟢 Bikin Tampilan Widget Penuh Memanjang Ke Samping (Full Span)
     protected int | string | array $columnSpan = 'full';
 
     protected function getFilters(): ?array

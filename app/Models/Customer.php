@@ -30,4 +30,13 @@ class Customer extends Model
     {
         return $this->hasManyThrough(Payment::class, Contract::class);
     }
+
+    /**
+     * Relasi ke Penjamin (Guarantor) milik Customer (1:N).
+     */
+    public function guarantors(): HasMany
+    {
+        return $this->hasMany(Guarantor::class);
+    }
 }
+

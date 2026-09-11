@@ -6,12 +6,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles    ;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -20,8 +21,11 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
+        'is_active',
         'password',
+        'password_changed_at',
     ];
 
     /**
@@ -44,6 +48,22 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'password_changed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Cek apakah password sudah kedaluwarsa (lebih dari PASSWORD_EXPIRY_DAYS hari).
+     * User yang belum pernah mengganti password (null) dianggap expired.
+     */
+    public function isPasswordExpired(): bool
+    {
+        $expiryDays = (int) env('PASSWORD_EXPIRY_DAYS', 90);
+
+        if (is_null($this->password_changed_at)) {
+            return true;
+        }
+
+        return $this->password_changed_at->diffInDays(Carbon::now()) >= $expiryDays;
     }
 }

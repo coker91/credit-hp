@@ -322,15 +322,23 @@
                 </thead>
                 <tbody>
                     @forelse ($this->contracts as $index => $contract)
-                        @php
-                            $monthlyInstallment = (float) $contract->monthly_installment;
-                            $tenor = max(1, (int) $contract->tenor_months);
-                            $costPrice = (float) ($contract->product?->cost_price ?? 0);
+                       @php
+                            $monthlyInstallment = (float) $contract->installment;
+                            $tenor = max(1, (int) $contract->tenor);
 
-                            $modalPerBulan = $tenor > 0 ? ($costPrice / $tenor) : 0;
-                            $labaPerBulan = max(0, $monthlyInstallment - $modalPerBulan);
+                            // 🟢 Ambil dari actual_cost_price (snapshot di kontrak), fallback ke product jika kosong
+                            $actualCostTotal = (float) (
+                                $contract->actual_cost_price
+                                    ?? $contract->product?->actual_cost_price
+                                    ?? $contract->product?->cost_price
+                                    ?? 0
+                            );
+
+                            $modalPerBulan = $tenor > 0 ? ($actualCostTotal / $tenor) : 0;
+                            $labaPerBulan = round($monthlyInstallment - $modalPerBulan);
+
                             $payments = $contract->payments->keyBy('installment_number');
-                        @endphp
+                       @endphp
                         <tr class="row-hover">
                             <!-- No -->
                             <td style="text-align: center; font-weight: 600; color: #64748b;">

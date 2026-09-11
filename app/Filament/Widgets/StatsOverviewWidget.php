@@ -16,24 +16,20 @@ class StatsOverviewWidget extends BaseWidget
     {
         $now = Carbon::now();
 
-        // 1. Kas Masuk Bulan Ini
         $cashInThisMonth = Payment::where('status', 'paid')
             ->whereYear('paid_at', $now->year)
             ->whereMonth('paid_at', $now->month)
             ->sum('paid_amount');
 
-        // 2. Tagihan Harus Ditagih Bulan Ini
         $dueThisMonth = Payment::whereYear('due_date', $now->year)
             ->whereMonth('due_date', $now->month)
             ->where('status', 'unpaid')
             ->sum('amount');
 
-        // 3. Jumlah Angsuran Overdue / Menunggak
         $overdueCount = Payment::where('due_date', '<', $now->toDateString())
             ->where('status', 'unpaid')
             ->count();
 
-        // 4. Total Kontrak Aktif
         $activeContractsCount = Contract::where('status', 'active')->count();
 
         return [
