@@ -48,12 +48,8 @@ class ProductResource extends Resource
                 Forms\Components\Section::make('Detail Produk & Kalkulasi Otomatis')
                     ->schema([
                         Forms\Components\TextInput::make('brand')
-                            ->label('Merk/Brand')
-                            ->placeholder('e.g. Samsung, Apple')
-                            ->required(),
-                        Forms\Components\TextInput::make('model_name')
-                            ->label('Model / Tipe HP')
-                            ->placeholder('e.g. Galaxy A55 8/256GB')
+                            ->label('Nama / Tipe HP')
+                            ->placeholder('e.g. Samsung Galaxy A55 8/256GB')
                             ->required(),
                         Forms\Components\TextInput::make('cost_price')
                             ->label('Harga Modal HP')
@@ -156,12 +152,9 @@ class ProductResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('brand')
-                    ->label('Brand')
+                    ->label('Nama / Tipe HP')
                     ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('model_name')
-                    ->label('Model HP')
-                    ->searchable()
+                    ->sortable()
                     ->weight('bold'),
                 Tables\Columns\TextColumn::make('cost_price')
                     ->label('Harga Modal')

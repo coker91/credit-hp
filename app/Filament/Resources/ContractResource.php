@@ -87,7 +87,7 @@ class ContractResource extends Resource
                                 Forms\Components\Textarea::make('address')->required(),
                             ]),
                         Forms\Components\Select::make('product_id')
-                            ->relationship('product', 'model_name')
+                            ->relationship('product', 'brand')
                             ->label('Unit HP')
                             ->searchable()
                             ->preload()
@@ -242,7 +242,7 @@ class ContractResource extends Resource
                     ->label('Nama Customer')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('product.model_name')
+                Tables\Columns\TextColumn::make('product.brand')
                     ->label('HP')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('total_price')

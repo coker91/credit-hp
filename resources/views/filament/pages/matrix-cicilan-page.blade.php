@@ -347,10 +347,7 @@
 
                             <!-- Nama Barang -->
                             <td style="font-weight: 700;" class="dark:text-slate-100">
-                                {{ $contract->product?->model_name ?? 'Produk N/A' }}
-                                <span style="display: block; font-size: 0.65rem; color: #94a3b8; font-weight: 400;">
-                                    Brand: {{ $contract->product?->brand ?? '-' }}
-                                </span>
+                                {{ $contract->product?->brand ?? 'Produk N/A' }}
                             </td>
 
                             <!-- Nama Pemilik -->

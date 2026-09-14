@@ -37,9 +37,7 @@ class MatrixCicilanPage extends Page
                 $query->where(function ($q) {
                     $q
                         ->whereHas('customer', fn($c) => $c->where('name', 'like', "%{$this->search}%"))
-                        ->orWhereHas('product', fn($p) => $p
-                            ->where('model_name', 'like', "%{$this->search}%")
-                            ->orWhere('brand', 'like', "%{$this->search}%"))
+                        ->orWhereHas('product', fn($p) => $p->where('brand', 'like', "%{$this->search}%"))
                         ->orWhere('contract_number', 'like', "%{$this->search}%");
                 });
             })

@@ -14,14 +14,21 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Seed Shield roles and permissions
+        $this->call(ShieldSeeder::class);
+
         // Admin User
-        if (!User::where('email', 'admin@admin.com')->exists()) {
-            User::factory()->create([
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@admin.com'],
+            [
                 'name' => 'Admin Credit HP',
-                'email' => 'admin@admin.com',
+                'username' => 'admin',
                 'password' => bcrypt('password'),
-            ]);
-        }
+                'password_changed_at' => Carbon::now(),
+                'is_active' => true,
+            ]
+        );
+        $admin->syncRoles(['super_admin']);
 
         // Clean existing transaction data for fresh matrix demo
         Payment::query()->delete();
@@ -191,9 +198,12 @@ class DatabaseSeeder extends Seeder
             $costPriceTotal = $item['modal_monthly'] * $item['tenor'];
             $sellingPriceTotal = $item['monthly'] * $item['tenor'];
 
+            $productName = str_starts_with(strtolower($item['product']), strtolower($item['brand']))
+                ? $item['product']
+                : ($item['brand'] === $item['product'] ? $item['product'] : $item['brand'] . ' ' . $item['product']);
+
             $product = Product::create([
-                'brand' => $item['brand'],
-                'model_name' => $item['product'],
+                'brand' => $productName,
                 'cost_price' => $costPriceTotal,
                 'selling_price' => $sellingPriceTotal,
             ]);
@@ -211,7 +221,6 @@ class DatabaseSeeder extends Seeder
                 'contract_number' => $contractNumber,
                 'customer_id' => $customer->id,
                 'product_id' => $product->id,
-                'down_payment' => 0,
                 'total_price' => $sellingPriceTotal,
                 'tenor' => $item['tenor'],
                 'installment' => $item['monthly'],

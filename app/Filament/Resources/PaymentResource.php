@@ -45,7 +45,7 @@ class PaymentResource extends Resource
                     ->searchable()
                     ->description(fn (Contract $record): string => $record->customer?->phone_number ? '📞 ' . $record->customer->phone_number : '-'),
 
-                Tables\Columns\TextColumn::make('product.model_name')
+                Tables\Columns\TextColumn::make('product.brand')
                     ->label('Unit HP')
                     ->searchable()
                     ->description(fn (Contract $record): string => 'Tenor ' . ($record->tenor ?? 6) . ' Bln @ Rp ' . number_format((float) $record->installment, 0, ',', '.')),
