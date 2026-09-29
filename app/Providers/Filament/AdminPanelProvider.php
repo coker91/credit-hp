@@ -10,10 +10,10 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Support\Colors\Color;
-use Filament\Pages;
+use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -36,9 +36,9 @@ class AdminPanelProvider extends PanelProvider
             ->font('Inter')
             ->colors([
                 'primary' => Color::Indigo, // ERPSAAS Brand Primary Indigo
-                'gray'    => Color::Gray,   // Modern neutral gray
-                'danger'  => Color::Rose,
-                'info'    => Color::Blue,
+                'gray' => Color::Gray,   // Modern neutral gray
+                'danger' => Color::Rose,
+                'info' => Color::Blue,
                 'success' => Color::Emerald,
                 'warning' => Color::Orange,
             ])
@@ -48,7 +48,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                Dashboard::class,
                 ForceChangePassword::class,
             ])
             ->renderHook(

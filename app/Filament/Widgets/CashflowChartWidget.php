@@ -8,11 +8,11 @@ use Illuminate\Support\Carbon;
 
 class CashflowChartWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Grafik Penerimaan Kas Bulanan';
+    protected ?string $heading = 'Grafik Penerimaan Kas Bulanan';
 
     protected static ?int $sort = 2;
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     protected function getFilters(): ?array
     {
@@ -20,7 +20,7 @@ class CashflowChartWidget extends ChartWidget
         $years = [];
 
         for ($year = $currentYear - 2; $year <= $currentYear; $year++) {
-            $years[$year] = 'Tahun ' . $year;
+            $years[$year] = 'Tahun '.$year;
         }
 
         return $years;

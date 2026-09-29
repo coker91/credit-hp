@@ -6,9 +6,9 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Schema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
@@ -17,7 +17,7 @@ class ForceChangePassword extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static string $view = 'filament.pages.auth.force-change-password';
+    protected string $view = 'filament.pages.auth.force-change-password';
 
     protected static ?string $slug = 'auth/force-change-password';
 
@@ -49,18 +49,19 @@ class ForceChangePassword extends Page implements HasForms
         $user = Auth::user();
 
         // Jika password belum expired, redirect ke dashboard
-        if ($user && !$user->isPasswordExpired()) {
+        if ($user && ! $user->isPasswordExpired()) {
             $this->redirect(filament()->getUrl());
+
             return;
         }
 
         $this->form->fill();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('current_password')
                     ->label('Password Saat Ini')
                     ->password()
@@ -108,7 +109,7 @@ class ForceChangePassword extends Page implements HasForms
         $user = Auth::user();
 
         $user->update([
-            'password'            => $data['new_password'],
+            'password' => $data['new_password'],
             'password_changed_at' => Carbon::now(),
         ]);
 

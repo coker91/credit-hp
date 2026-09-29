@@ -2,47 +2,59 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\ContractResource\Pages\CreateContract;
+use App\Filament\Resources\ContractResource\Pages\EditContract;
+use App\Filament\Resources\ContractResource\Pages\ListContracts;
 use App\Filament\Resources\ContractResource\RelationManagers\PaymentsRelationManager;
-use App\Filament\Resources\ContractResource\Pages;
 use App\Models\Contract;
 use App\Models\Product;
 use App\Services\InstallmentService;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Filament\Forms;
-use Filament\Tables;
-use Illuminate\Support\Carbon;
 
 class ContractResource extends Resource
 {
     protected static ?string $model = Contract::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationGroup = 'Transaksi';
+    protected static string|\UnitEnum|null $navigationGroup = 'Transaksi';
 
     protected static ?string $modelLabel = 'Kontrak Cicilan';
 
     protected static ?string $pluralModelLabel = 'Kontrak Cicilan';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Informasi Transaksi')
+        return $schema
+            ->components([
+                Section::make('Informasi Transaksi')
                     ->schema([
-                        Forms\Components\TextInput::make('contract_number')
+                        TextInput::make('contract_number')
                             ->label('No. Kontrak')
                             ->default(function () {
                                 $now = \Carbon\Carbon::now();
                                 $year2Digit = $now->format('y');
                                 $month2Digit = $now->format('m');
-                                $code = 'CTR' . $year2Digit . $month2Digit;
+                                $code = 'CTR'.$year2Digit.$month2Digit;
 
-                                $monthlyCount = \App\Models\Contract::whereYear('start_date', $now->year)
+                                $monthlyCount = Contract::whereYear('start_date', $now->year)
                                     ->whereMonth('start_date', $now->month)
                                     ->count() + 1;
 
@@ -53,19 +65,19 @@ class ContractResource extends Resource
                             ->required()
                             ->readOnly()
                             ->unique(ignoreRecord: true),
-                        Forms\Components\DatePicker::make('start_date')
+                        DatePicker::make('start_date')
                             ->label('Tanggal Mulai')
                             ->default(now())
                             ->required()
                             ->live()
-                            ->afterStateUpdated(function (Forms\Set $set, $state) {
+                            ->afterStateUpdated(function (Set $set, $state) {
                                 if ($state) {
                                     $date = \Carbon\Carbon::parse($state);
                                     $year2Digit = $date->format('y');
                                     $month2Digit = $date->format('m');
-                                    $code = 'CTR' . $year2Digit . $month2Digit;
+                                    $code = 'CTR'.$year2Digit.$month2Digit;
 
-                                    $monthlyCount = \App\Models\Contract::whereYear('start_date', $date->year)
+                                    $monthlyCount = Contract::whereYear('start_date', $date->year)
                                         ->whereMonth('start_date', $date->month)
                                         ->count() + 1;
 
@@ -74,19 +86,19 @@ class ContractResource extends Resource
                                     $set('contract_number', "{$sequence}/{$code}/{$sequence}");
                                 }
                             }),
-                        Forms\Components\Select::make('customer_id')
+                        Select::make('customer_id')
                             ->relationship('customer', 'name')
                             ->label('Customer')
                             ->searchable()
                             ->preload()
                             ->required()
                             ->createOptionForm([
-                                Forms\Components\TextInput::make('nik')->required()->maxLength(16),
-                                Forms\Components\TextInput::make('name')->required(),
-                                Forms\Components\TextInput::make('phone_number')->label('No. WhatsApp')->required(),
-                                Forms\Components\Textarea::make('address')->required(),
+                                TextInput::make('nik')->required()->maxLength(16),
+                                TextInput::make('name')->required(),
+                                TextInput::make('phone_number')->label('No. WhatsApp')->required(),
+                                Textarea::make('address')->required(),
                             ]),
-                        Forms\Components\Select::make('product_id')
+                        Select::make('product_id')
                             ->relationship('product', 'brand')
                             ->label('Unit HP')
                             ->searchable()
@@ -111,17 +123,17 @@ class ContractResource extends Resource
                             }),
                     ])
                     ->columns(2),
-                Forms\Components\Section::make('Skema Pembayaran')
+                Section::make('Skema Pembayaran')
                     ->schema([
-                        Forms\Components\TextInput::make('total_price')
+                        TextInput::make('total_price')
                             ->label('Total Harga Kontrak')
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 0)
                             ->numeric()
                             ->prefix('Rp')
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn(Get $get, Set $set) => self::updateMonthlyInstallment($get, $set)),
-                        Forms\Components\Select::make('tenor')
+                            ->afterStateUpdated(fn (Get $get, Set $set) => self::updateMonthlyInstallment($get, $set)),
+                        Select::make('tenor')
                             ->label('Tenor (Bulan)')
                             ->options([
                                 3 => '3 Bulan',
@@ -132,8 +144,8 @@ class ContractResource extends Resource
                             ->default(6)
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn(Get $get, Set $set) => self::syncInstallmentFromProduct($get, $set)),
-                        Forms\Components\TextInput::make('installment')
+                            ->afterStateUpdated(fn (Get $get, Set $set) => self::syncInstallmentFromProduct($get, $set)),
+                        TextInput::make('installment')
                             ->label('Angsuran per Bulan (Ditagih ke Customer)')
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 0)
                             ->numeric()
@@ -141,7 +153,7 @@ class ContractResource extends Resource
                             ->dehydrated()
                             ->minValue(0)
                             ->required(),
-                        Forms\Components\Select::make('status')
+                        Select::make('status')
                             ->options([
                                 'active' => 'Aktif (Berjalan)',
                                 'completed' => 'Lunas',
@@ -149,8 +161,8 @@ class ContractResource extends Resource
                             ])
                             ->default('active')
                             ->required(),
-                        Forms\Components\Hidden::make('actual_cost_price'),
-                        Forms\Components\Placeholder::make('real_profit_preview')
+                        Hidden::make('actual_cost_price'),
+                        Placeholder::make('real_profit_preview')
                             ->label('Rincian Profit Internal / Bulan')
                             ->content(function (Get $get) {
                                 $installment = (float) preg_replace('/[^\d]/', '', (string) ($get('installment') ?? 0));
@@ -187,12 +199,12 @@ class ContractResource extends Resource
         $productId = $get('product_id');
         $tenor = (int) ($get('tenor') ?? 0);
 
-        if (!$productId || $tenor <= 0) {
+        if (! $productId || $tenor <= 0) {
             return;
         }
 
         $product = Product::find($productId);
-        if (!$product) {
+        if (! $product) {
             return;
         }
 
@@ -211,7 +223,7 @@ class ContractResource extends Resource
     {
         $currentInstallment = $get('installment');
 
-        if (!empty($currentInstallment)) {
+        if (! empty($currentInstallment)) {
             return;
         }
 
@@ -233,77 +245,79 @@ class ContractResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('contract_number')
+                TextColumn::make('contract_number')
                     ->label('No. Kontrak')
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
-                Tables\Columns\TextColumn::make('customer.name')
+                TextColumn::make('customer.name')
                     ->label('Nama Customer')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('product.brand')
+                TextColumn::make('product.brand')
                     ->label('HP')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('total_price')
+                TextColumn::make('total_price')
                     ->label('Total Harga')
                     ->money('IDR')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('installment')
+                TextColumn::make('installment')
                     ->label('Cicilan/Bln')
                     ->money('IDR'),
-                Tables\Columns\TextColumn::make('modal_perbulan')
+                TextColumn::make('modal_perbulan')
                     ->label('Modal/Bln')
                     ->state(function (Contract $record) {
                         if ($record->tenor <= 0) {
                             return 0;
                         }
+
                         return round(((float) $record->actual_cost_price) / $record->tenor);
                     })
                     ->money('IDR'),
-                Tables\Columns\TextColumn::make('laba_perbulan')
+                TextColumn::make('laba_perbulan')
                     ->label('Laba/Bln')
                     ->state(function (Contract $record) {
                         if ($record->tenor <= 0) {
                             return 0;
                         }
                         $modalPerBulan = round(((float) $record->actual_cost_price) / $record->tenor);
+
                         return round((float) $record->installment - $modalPerBulan);
                     })
                     ->money('IDR')
                     ->color('success')
                     ->weight('bold'),
-                Tables\Columns\TextColumn::make('tenor')
+                TextColumn::make('tenor')
                     ->label('Tenor')
-                    ->formatStateUsing(fn($state) => "{$state} Bln")
+                    ->formatStateUsing(fn ($state) => "{$state} Bln")
                     ->alignCenter(),
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'active' => 'primary',
                         'completed' => 'success',
                         'defaulted' => 'danger',
                     }),
-                Tables\Columns\TextColumn::make('start_date')
+                TextColumn::make('start_date')
                     ->label('Mulai')
                     ->date('d M Y')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->options([
                         'active' => 'Aktif',
                         'completed' => 'Lunas',
                         'defaulted' => 'Macet',
                     ]),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -318,9 +332,9 @@ class ContractResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListContracts::route('/'),
-            'create' => Pages\CreateContract::route('/create'),
-            'edit' => Pages\EditContract::route('/{record}/edit'),
+            'index' => ListContracts::route('/'),
+            'create' => CreateContract::route('/create'),
+            'edit' => EditContract::route('/{record}/edit'),
         ];
     }
 }

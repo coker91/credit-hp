@@ -2,23 +2,30 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ProductResource\Pages;
+use App\Filament\Resources\ProductResource\Pages\CreateProduct;
+use App\Filament\Resources\ProductResource\Pages\EditProduct;
+use App\Filament\Resources\ProductResource\Pages\ListProducts;
 use App\Models\Product;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Filament\Forms;
-use Filament\Tables;
 
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-device-phone-mobile';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-device-phone-mobile';
 
-    protected static ?string $navigationGroup = 'Master Data';
+    protected static string|\UnitEnum|null $navigationGroup = 'Master Data';
 
     protected static ?string $modelLabel = 'Daftar Barang';
 
@@ -28,7 +35,7 @@ class ProductResource extends Resource
     {
         $current = $get('installment_reference');
 
-        if (!empty($current)) {
+        if (! empty($current)) {
             return;
         }
 
@@ -41,27 +48,28 @@ class ProductResource extends Resource
         }
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Detail Produk & Kalkulasi Otomatis')
+        return $schema
+            ->components([
+                Section::make('Detail Produk & Kalkulasi Otomatis')
                     ->schema([
-                        Forms\Components\TextInput::make('brand')
+                        TextInput::make('brand')
                             ->label('Nama / Tipe HP')
                             ->placeholder('e.g. Samsung Galaxy A55 8/256GB')
                             ->required(),
-                        Forms\Components\TextInput::make('cost_price')
+                        TextInput::make('cost_price')
                             ->label('Harga Modal HP')
                             ->numeric()
                             ->prefix('Rp')
                             ->required()
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 0)
                             ->live(onBlur: true)
-                            ->formatStateUsing(fn($state) => $state ? number_format((float) $state, 0, '', '') : null)
+                            ->formatStateUsing(fn ($state) => $state ? number_format((float) $state, 0, '', '') : null)
                             ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
-                                if (!$state)
+                                if (! $state) {
                                     return;
+                                }
 
                                 $costPrice = (float) $state;
 
@@ -70,30 +78,30 @@ class ProductResource extends Resource
                                 $set('selling_price', round($sellingPrice, 2));
                             })
                             ->required(),
-                        Forms\Components\TextInput::make('selling_price')
+                        TextInput::make('selling_price')
                             ->label('Harga Jual HP (Modal + 30%)')
                             ->numeric()
                             ->prefix('Rp')
                             ->live(onBlur: true)  // 🟢 tambahan
-                            ->formatStateUsing(fn($state) => $state ? number_format((float) $state, 0, '', '') : null)
+                            ->formatStateUsing(fn ($state) => $state ? number_format((float) $state, 0, '', '') : null)
                             ->required()
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 0)
                             ->helperText('Otomatis dihitung dari Harga Modal + Profit 30%. Ini yang jadi dasar cicilan customer.')
-                            ->afterStateUpdated(fn(Get $get, Set $set) => self::updateInstallmentReference($get, $set)),  // 🟢 tambahan
+                            ->afterStateUpdated(fn (Get $get, Set $set) => self::updateInstallmentReference($get, $set)),  // 🟢 tambahan
                     ])
                     ->columns(2),
-                Forms\Components\Section::make('Data Internal (Rahasia — Tidak Terlihat Customer)')
+                Section::make('Data Internal (Rahasia — Tidak Terlihat Customer)')
                     ->description('Isi jika ada modal sebenarnya yang berbeda dari Harga Modal resmi (misal: dapat voucher/diskon). Tidak memengaruhi harga jual ke customer.')
                     ->schema([
-                        Forms\Components\TextInput::make('actual_cost_price')
+                        TextInput::make('actual_cost_price')
                             ->label('Modal Sebenarnya (Net)')
                             ->numeric()
                             ->prefix('Rp')
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 0)
                             ->live(onBlur: true)
-                            ->formatStateUsing(fn($state) => $state ? number_format((float) $state, 0, '', '') : null)
+                            ->formatStateUsing(fn ($state) => $state ? number_format((float) $state, 0, '', '') : null)
                             ->helperText('Kosongkan jika modal sama dengan Harga Modal resmi di atas.'),
-                        Forms\Components\Select::make('default_tenor')
+                        Select::make('default_tenor')
                             ->label('Tenor Acuan')
                             ->options([
                                 3 => '3 Bulan',
@@ -103,17 +111,17 @@ class ProductResource extends Resource
                             ])
                             ->default(6)
                             ->live()
-                            ->afterStateUpdated(fn(Get $get, Set $set) => self::updateInstallmentReference($get, $set))
+                            ->afterStateUpdated(fn (Get $get, Set $set) => self::updateInstallmentReference($get, $set))
                             ->helperText('Tenor yang dipakai untuk hitung Cicilan/Bln referensi di bawah.'),
-                        Forms\Components\TextInput::make('installment_reference')
+                        TextInput::make('installment_reference')
                             ->label('Cicilan/Bln (Referensi)')
                             ->numeric()
                             ->prefix('Rp')
                             ->live()
                             ->currencyMask(thousandSeparator: ',', decimalSeparator: '.', precision: 0)
-                            ->formatStateUsing(fn($state) => $state ? number_format((float) $state, 0, '', '') : null)
+                            ->formatStateUsing(fn ($state) => $state ? number_format((float) $state, 0, '', '') : null)
                             ->helperText('Otomatis dihitung dari Harga Jual ÷ Tenor Acuan. Bisa diedit manual jika perlu.'),
-                        Forms\Components\Placeholder::make('real_margin_preview')
+                        Placeholder::make('real_margin_preview')
                             ->label('Rincian Margin Sebenarnya')
                             ->content(function (Get $get) {
                                 $costPrice = (float) preg_replace('/[^\d]/', '', (string) ($get('cost_price') ?? 0));
@@ -151,37 +159,37 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('brand')
+                TextColumn::make('brand')
                     ->label('Nama / Tipe HP')
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
-                Tables\Columns\TextColumn::make('cost_price')
+                TextColumn::make('cost_price')
                     ->label('Harga Modal')
                     ->money('IDR')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('selling_price')
+                TextColumn::make('selling_price')
                     ->label('Harga Jual')
                     ->money('IDR')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('margin')
+                TextColumn::make('margin')
                     ->label('Margin Acuan')
                     ->money('IDR')
-                    ->state(fn(Product $record) => $record->selling_price - $record->cost_price)
+                    ->state(fn (Product $record) => $record->selling_price - $record->cost_price)
                     ->color('success'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ]);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListProducts::route('/'),
-            'create' => Pages\CreateProduct::route('/create'),
-            'edit' => Pages\EditProduct::route('/{record}/edit'),
+            'index' => ListProducts::route('/'),
+            'create' => CreateProduct::route('/create'),
+            'edit' => EditProduct::route('/{record}/edit'),
         ];
     }
 }

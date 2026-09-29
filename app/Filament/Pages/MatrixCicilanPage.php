@@ -11,9 +11,9 @@ use Illuminate\Support\Carbon;
 
 class MatrixCicilanPage extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-table-cells';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-table-cells';
 
-    protected static ?string $navigationGroup = 'Laporan & Analytics';
+    protected static string|\UnitEnum|null $navigationGroup = 'Laporan & Analytics';
 
     protected static ?string $navigationLabel = 'Matrix Cicilan & Laba';
 
@@ -21,7 +21,7 @@ class MatrixCicilanPage extends Page
 
     protected static ?int $navigationSort = 1;
 
-    protected static string $view = 'filament.pages.matrix-cicilan-page';
+    protected string $view = 'filament.pages.matrix-cicilan-page';
 
     public ?string $search = '';
 
@@ -36,8 +36,8 @@ class MatrixCicilanPage extends Page
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q
-                        ->whereHas('customer', fn($c) => $c->where('name', 'like', "%{$this->search}%"))
-                        ->orWhereHas('product', fn($p) => $p->where('brand', 'like', "%{$this->search}%"))
+                        ->whereHas('customer', fn ($c) => $c->where('name', 'like', "%{$this->search}%"))
+                        ->orWhereHas('product', fn ($p) => $p->where('brand', 'like', "%{$this->search}%"))
                         ->orWhere('contract_number', 'like', "%{$this->search}%");
                 });
             })
@@ -118,12 +118,12 @@ class MatrixCicilanPage extends Page
         if ($payment) {
             $customer = $payment->contract->customer;
             $dueDate = Carbon::parse($payment->due_date)->translatedFormat('d F Y');
-            $nominal = 'Rp ' . number_format((float) $payment->amount, 0, ',', '.');
+            $nominal = 'Rp '.number_format((float) $payment->amount, 0, ',', '.');
 
             $message = "Halo Bpk/Ibu *{$customer->name}*,\n\n"
-                . "Kami ingin mengingatkan angsuran cicilan HP Anda untuk No. Kontrak *{$payment->contract->contract_number}* (Cicilan Ke-{$payment->installment_number}) sebesar *{$nominal}* akan/telah jatuh tempo pada *{$dueDate}*.\n\n"
-                . "Mohon segera melakukan pembayaran. Abaikan jika sudah lunas.\n\n"
-                . 'Terima kasih.';
+                ."Kami ingin mengingatkan angsuran cicilan HP Anda untuk No. Kontrak *{$payment->contract->contract_number}* (Cicilan Ke-{$payment->installment_number}) sebesar *{$nominal}* akan/telah jatuh tempo pada *{$dueDate}*.\n\n"
+                ."Mohon segera melakukan pembayaran. Abaikan jika sudah lunas.\n\n"
+                .'Terima kasih.';
 
             $sent = WaService::sendMessage($customer->phone_number, $message);
 

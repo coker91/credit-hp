@@ -2,52 +2,60 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\CustomerResource\Pages;
+use App\Filament\Resources\CustomerResource\Pages\CreateCustomer;
+use App\Filament\Resources\CustomerResource\Pages\EditCustomer;
+use App\Filament\Resources\CustomerResource\Pages\ListCustomers;
 use App\Models\Customer;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class CustomerResource extends Resource
 {
     protected static ?string $model = Customer::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-users';
 
-    protected static ?string $navigationGroup = 'Master Data';
+    protected static string|\UnitEnum|null $navigationGroup = 'Master Data';
 
     protected static ?string $modelLabel = 'Nasabah';
 
     protected static ?string $pluralModelLabel = 'Data Nasabah';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Informasi Profil Nasabah')
+        return $schema
+            ->components([
+                Section::make('Informasi Profil Nasabah')
                     ->schema([
-                        Forms\Components\TextInput::make('nik')
+                        TextInput::make('nik')
                             ->label('NIK (KTP)')
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->length(16)
                             ->numeric(),
 
-                        Forms\Components\TextInput::make('name')
+                        TextInput::make('name')
                             ->label('Nama Lengkap')
                             ->required()
                             ->maxLength(255),
 
-                        Forms\Components\TextInput::make('phone_number')
+                        TextInput::make('phone_number')
                             ->label('No. WhatsApp')
                             ->placeholder('081234567890')
                             ->required()
                             ->tel()
                             ->maxLength(20),
 
-                        Forms\Components\Textarea::make('address')
+                        Textarea::make('address')
                             ->label('Alamat Domisili')
                             ->required()
                             ->columnSpanFull(),
@@ -59,40 +67,40 @@ class CustomerResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nik')
+                TextColumn::make('nik')
                     ->label('NIK')
                     ->searchable()
                     ->copyable(),
 
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Nama Nasabah')
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
 
-                Tables\Columns\TextColumn::make('phone_number')
+                TextColumn::make('phone_number')
                     ->label('No. WhatsApp')
                     ->icon('heroicon-m-phone')
                     ->searchable()
                     ->copyable(),
 
-                Tables\Columns\TextColumn::make('contracts_count')
+                TextColumn::make('contracts_count')
                     ->label('Total Kontrak')
                     ->counts('contracts')
                     ->alignCenter(),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Terdaftar')
                     ->date('d M Y')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -100,9 +108,9 @@ class CustomerResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListCustomers::route('/'),
-            'create' => Pages\CreateCustomer::route('/create'),
-            'edit'   => Pages\EditCustomer::route('/{record}/edit'),
+            'index' => ListCustomers::route('/'),
+            'create' => CreateCustomer::route('/create'),
+            'edit' => EditCustomer::route('/{record}/edit'),
         ];
     }
 }

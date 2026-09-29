@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -10,14 +11,14 @@ class WaService
     /**
      * Kirim pesan WhatsApp melalui Evolution API (atau Provider Gateway pilihan).
      *
-     * @param string $target Nomor HP penerima (e.g. 081234567890 / 6281234567890)
-     * @param string $message Teks pesan yang akan dikirim
+     * @param  string  $target  Nomor HP penerima (e.g. 081234567890 / 6281234567890)
+     * @param  string  $message  Teks pesan yang akan dikirim
      * @return bool Status berhasil/gagal
      */
     public static function sendMessage(string $target, string $message): bool
     {
         $formattedPhone = self::formatPhoneNumber($target);
-        
+
         $provider = env('WA_PROVIDER', 'evolution'); // Default: 'evolution'
 
         if ($provider === 'evolution') {
@@ -42,26 +43,29 @@ class WaService
 
         try {
             $response = Http::withHeaders([
-                'apikey'       => $apiKey,
+                'apikey' => $apiKey,
                 'Content-Type' => 'application/json',
             ])->timeout(15)->post($endpoint, [
-                'number'  => $phone,
-                'text'    => $message,
+                'number' => $phone,
+                'text' => $message,
                 'options' => [
-                    'delay'    => 1200,
+                    'delay' => 1200,
                     'presence' => 'composing',
                 ],
             ]);
 
             if ($response->successful()) {
-                Log::info("WA Evolution API Success to {$phone}: " . $response->body());
+                Log::info("WA Evolution API Success to {$phone}: ".$response->body());
+
                 return true;
             }
 
-            Log::error("WA Evolution API Failed ({$response->status()}) to {$phone}: " . $response->body());
+            Log::error("WA Evolution API Failed ({$response->status()}) to {$phone}: ".$response->body());
+
             return false;
-        } catch (\Exception $e) {
-            Log::error("WA Evolution API Exception: " . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('WA Evolution API Exception: '.$e->getMessage());
+
             return false;
         }
     }
@@ -78,13 +82,14 @@ class WaService
             $response = Http::withHeaders([
                 'Authorization' => $token,
             ])->timeout(15)->post($endpoint, [
-                'target'  => $phone,
+                'target' => $phone,
                 'message' => $message,
             ]);
 
             return $response->successful();
-        } catch (\Exception $e) {
-            Log::error("WA Fonnte Error: " . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('WA Fonnte Error: '.$e->getMessage());
+
             return false;
         }
     }
@@ -97,7 +102,7 @@ class WaService
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
         if (str_starts_with($phone, '0')) {
-            $phone = '62' . substr($phone, 1);
+            $phone = '62'.substr($phone, 1);
         }
 
         return $phone;

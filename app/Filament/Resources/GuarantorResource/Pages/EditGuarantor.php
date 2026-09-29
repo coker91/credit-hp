@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\GuarantorResource\Pages;
 
 use App\Filament\Resources\GuarantorResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditGuarantor extends EditRecord
@@ -13,7 +13,7 @@ class EditGuarantor extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }
