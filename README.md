@@ -1,12 +1,12 @@
 # Credit HP - System Monitoring Cicilan, Modal & Laba (with Evolution API WhatsApp Gateway)
 
-Aplikasi Web Management & Monitoring Angsuran Cicilan HP berbasis **Laravel 11** & **Filament 3** dengan integrasi **Evolution API (WhatsApp Gateway)**.
+Aplikasi Web Management & Monitoring Angsuran Cicilan HP berbasis **PHP 8.3**, **Laravel 12** & **Filament 5** dengan integrasi **Evolution API (WhatsApp Gateway)**.
 
 ---
 
 ## 🐳 Panduan Memulai dengan Docker (Turnkey Setup)
 
-Seluruh stack (Laravel 11, Nginx, MySQL, Redis, dan Evolution API WhatsApp Gateway) telah dibungkus dalam `docker-compose.yml`.
+Seluruh stack (PHP 8.3, Laravel 12, Nginx, MySQL, Redis, dan Evolution API WhatsApp Gateway) telah dibungkus dalam `docker-compose.yml`.
 
 ### 1. Menjalankan Container
 Jalankan perintah berikut di terminal root proyek:
