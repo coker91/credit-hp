@@ -175,6 +175,23 @@
             background-color: #374151;
         }
 
+        .badge-missing {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px dashed #f59e0b;
+            padding: 0.3rem 0.4rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            text-align: center;
+            font-size: 0.7rem;
+            display: block;
+        }
+        .dark .badge-missing {
+            background-color: #451a03;
+            color: #fde68a;
+            border-color: #d97706;
+        }
+
         .row-hover:hover {
             background-color: #f8fafc;
         }
@@ -378,7 +395,15 @@
                                     @endphp
 
                                     <td style="text-align: center; padding: 0.35rem 0.25rem;">
-                                        @if ($isPaid)
+                                        @if (! $payment)
+                                            <!-- MISSING PAYMENT SCHEDULE -->
+                                            <span
+                                                class="badge-missing"
+                                                title="Jadwal cicilan ke-{{ $i }} belum dibuat"
+                                            >
+                                                Belum dibuat
+                                            </span>
+                                        @elseif ($isPaid)
                                             <!-- PAID BADGE -->
                                             <span 
                                                 class="badge-paid"
