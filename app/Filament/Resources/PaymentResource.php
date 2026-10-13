@@ -5,7 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PaymentResource\Pages\ListPayments;
 use App\Filament\Resources\PaymentResource\Pages\PaymentKanban;
 use App\Models\Contract;
-use App\Models\Payment;
+use App\Services\PaymentSettlement;
 use App\Services\WaService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
@@ -21,6 +21,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 
 class PaymentResource extends Resource
 {
@@ -167,6 +168,7 @@ class PaymentResource extends Resource
             ])
             ->recordActions([
                 Action::make('markAsPaid')
+                    ->visible(fn (): bool => auth()->user()?->can('update_payment') ?? false)
                     ->label('Bayar Cicilan')
                     ->icon('heroicon-m-check-circle')
                     ->color('success')
@@ -189,9 +191,9 @@ class PaymentResource extends Resource
                                 ->default($firstUnpaid?->id)
                                 ->required()
                                 ->reactive()
-                                ->afterStateUpdated(function (Set $set, $state) {
+                                ->afterStateUpdated(function (Set $set, $state) use ($record) {
                                     if ($state) {
-                                        $payment = Payment::find($state);
+                                        $payment = $record->payments()->find($state);
                                         if ($payment) {
                                             $set('paid_amount', $payment->amount);
                                         }
@@ -212,29 +214,21 @@ class PaymentResource extends Resource
                         ];
                     })
                     ->action(function (Contract $record, array $data) {
-                        $payment = Payment::find($data['payment_id']);
-                        if ($payment) {
-                            $payment->update([
-                                'paid_amount' => $data['paid_amount'],
-                                'paid_at' => $data['paid_at'],
-                                'status' => 'paid',
-                            ]);
+                        $payment = $record->payments()->findOrFail($data['payment_id']);
+                        app(PaymentSettlement::class)->settle(
+                            $payment->id,
+                            (string) $data['paid_amount'],
+                            (string) $data['paid_at'],
+                        );
 
-                            // Selesaikan kontrak hanya jika jadwal lengkap dan seluruh cicilan sudah lunas.
-                            $scheduleCount = $record->payments()->count();
-                            $remaining = $record->payments()->where('status', '!=', 'paid')->count();
-                            if ($scheduleCount >= (int) $record->tenor && $remaining === 0) {
-                                $record->update(['status' => 'completed']);
-                            }
-
-                            Notification::make()
-                                ->title("Cicilan Ke-{$payment->installment_number} Berhasil Dilunasi")
-                                ->success()
-                                ->send();
-                        }
+                        Notification::make()
+                            ->title("Cicilan Ke-{$payment->installment_number} Berhasil Dilunasi")
+                            ->success()
+                            ->send();
                     }),
 
                 Action::make('sendWaNotice')
+                    ->visible(fn (): bool => auth()->user()?->can('update_payment') ?? false)
                     ->label('Kirim WA')
                     ->icon('heroicon-m-chat-bubble-left-ellipsis')
                     ->color('warning')
@@ -253,6 +247,9 @@ class PaymentResource extends Resource
 
                             return;
                         }
+
+                        abort_unless(auth()->user()?->is_active, 403);
+                        Gate::authorize('update', $nextUnpaid);
 
                         $customer = $record->customer;
                         $dueDate = Carbon::parse($nextUnpaid->due_date)->translatedFormat('d F Y');

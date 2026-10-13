@@ -41,7 +41,8 @@ class CustomerResource extends Resource
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->length(16)
-                            ->numeric(),
+                            ->inputMode('numeric')
+                            ->regex('/^[0-9]{16}$/'),
 
                         TextInput::make('name')
                             ->label('Nama Lengkap')

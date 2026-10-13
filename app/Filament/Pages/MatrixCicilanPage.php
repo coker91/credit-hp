@@ -4,13 +4,18 @@ namespace App\Filament\Pages;
 
 use App\Models\Contract;
 use App\Models\Payment;
+use App\Services\PaymentSettlement;
 use App\Services\WaService;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 
 class MatrixCicilanPage extends Page
 {
+    use HasPageShield;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-table-cells';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Laporan & Analytics';
@@ -97,25 +102,23 @@ class MatrixCicilanPage extends Page
 
     public function markAsPaid(int $paymentId): void
     {
-        $payment = Payment::find($paymentId);
-        if ($payment && $payment->status !== 'paid') {
-            $payment->update([
-                'paid_amount' => $payment->amount,
-                'paid_at' => now(),
-                'status' => 'paid',
-            ]);
+        $updated = app(PaymentSettlement::class)->settle($paymentId);
 
-            Notification::make()
-                ->title("Cicilan Ke-{$payment->installment_number} Berhasil Diberikan Status Lunas")
-                ->success()
-                ->send();
-        }
+        unset($this->contracts, $this->summaryStats, $this->maxTenor);
+
+        Notification::make()
+            ->title($updated ? 'Pembayaran berhasil dicatat' : 'Cicilan sudah lunas')
+            ->color($updated ? 'success' : 'gray')
+            ->send();
     }
 
     public function sendWaNotice(int $paymentId): void
     {
         $payment = Payment::with('contract.customer')->find($paymentId);
         if ($payment) {
+            abort_unless(auth()->user()?->is_active, 403);
+            Gate::authorize('update', $payment);
+
             $customer = $payment->contract->customer;
             $dueDate = Carbon::parse($payment->due_date)->translatedFormat('d F Y');
             $nominal = 'Rp '.number_format((float) $payment->amount, 0, ',', '.');

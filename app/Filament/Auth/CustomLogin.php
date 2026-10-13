@@ -46,6 +46,7 @@ class CustomLogin extends Login
         return [
             $login_type => $data['login'],
             'password' => $data['password'],
+            'is_active' => true,
         ];
     }
 

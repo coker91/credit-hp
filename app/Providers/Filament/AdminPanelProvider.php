@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Auth\CustomLogin;
 use App\Filament\Auth\ForceChangePassword;
 use App\Http\Middleware\CheckPasswordExpiry;
+use App\Http\Middleware\EnsureActiveUser;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -71,6 +72,7 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            ->authMiddleware([EnsureActiveUser::class], isPersistent: true)
             ->authMiddleware([
                 Authenticate::class,
                 CheckPasswordExpiry::class,

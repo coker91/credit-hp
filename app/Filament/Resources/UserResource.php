@@ -48,6 +48,14 @@ class UserResource extends Resource
                         TextInput::make('username')
                             ->label('Username')
                             ->placeholder('Input Username')
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(255)
+                            ->required(),
+                        TextInput::make('email')
+                            ->label('Email')
+                            ->email()
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(255)
                             ->required(),
                         TextInput::make('password')
                             ->password()
@@ -74,10 +82,10 @@ class UserResource extends Resource
                             ->preload()
                             ->searchable()
                             ->required(),
-                        Toggle::make('status')
+                        Toggle::make('is_active')
                             ->onColor('success')
                             ->offColor('danger')
-                            ->label('Status')
+                            ->label('Akun aktif')
                             ->default(true),
                     ])
                     ->columns(2),

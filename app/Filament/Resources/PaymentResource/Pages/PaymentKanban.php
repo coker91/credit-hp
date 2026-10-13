@@ -4,12 +4,11 @@ namespace App\Filament\Resources\PaymentResource\Pages;
 
 use App\Filament\Resources\PaymentResource;
 use App\Models\Payment;
+use App\Services\PaymentSettlement;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 
 class PaymentKanban extends Page
 {
@@ -94,33 +93,7 @@ class PaymentKanban extends Page
 
     public function markAsPaid(int $paymentId): void
     {
-        $updated = DB::transaction(function () use ($paymentId): bool {
-            $payment = Payment::query()
-                ->with('contract')
-                ->lockForUpdate()
-                ->findOrFail($paymentId);
-
-            Gate::authorize('update', $payment);
-
-            if ($payment->status === 'paid') {
-                return false;
-            }
-
-            $payment->update([
-                'paid_amount' => $payment->amount,
-                'paid_at' => now(),
-                'status' => 'paid',
-            ]);
-
-            $scheduleCount = $payment->contract->payments()->count();
-            $hasCompleteSchedule = $scheduleCount >= (int) $payment->contract->tenor;
-
-            if ($hasCompleteSchedule && $payment->contract->payments()->where('status', '!=', 'paid')->doesntExist()) {
-                $payment->contract->update(['status' => 'completed']);
-            }
-
-            return true;
-        });
+        $updated = app(PaymentSettlement::class)->settle($paymentId);
 
         unset($this->board);
 

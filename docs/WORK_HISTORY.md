@@ -101,3 +101,75 @@ b6210efa21a2060014ee7a81cd4eb4feddde30f6 | 2026-09-14T14:41:01+07:00 | feat: upd
 110f818d76e2c6dbe0a3c3a0cddd90505af39b41 | 2026-09-29T15:01:24+07:00 | feat: add interactive payment monitoring and kanban
 0b52e4af76b0129a52d415d41e6d197083f68a5e | 2026-09-29T15:01:35+07:00 | test: cover Filament upgrade and payment workflows
 ```
+
+## Lanjutan review akses, input resource, dan cloud testing
+
+Tanggal: 13 Oktober 2026 (Asia/Jakarta).
+
+- Commit setup `429f7ea` sebelumnya sudah dipush ke branch `work`.
+- Skill setup resmi kemudian tersedia dan dibaca untuk menyiapkan pengujian.
+  Skill lokal sebelumnya tetap dicatat sebagai panduan pengganti, bukan plugin asli.
+- Model User menerapkan kontrak akses panel Filament dan cast/default `is_active`.
+  Login menolak akun nonaktif; middleware persistent menolak sesi nonaktif,
+  termasuk pembaruan Livewire.
+- Matrix memakai permission halaman Shield. Aksi pelunasan dan WhatsApp
+  memeriksa izin update payment di server; pengguna tanpa izin mendapat 403.
+- Dibuat `PaymentSettlement` untuk Matrix, Kanban, tabel pembayaran, dan relasi
+  angsuran. Transaksi mengunci kontrak sebelum pembayaran untuk menyelaraskan
+  pelunasan antar-angsuran, mempertahankan idempotensi, dan menyelesaikan kontrak
+  hanya jika jadwal lengkap serta seluruh angsuran lunas.
+- Pemilihan payment pada tabel dibatasi ke relasi kontrak yang sedang ditampilkan.
+- Form pengguna dilengkapi email wajib dan unik, validasi username unik,
+  toggle `is_active` yang benar, serta pembaruan waktu penggantian password.
+- Tes input menemukan NIK tersimpan sebagai notasi ilmiah (contoh
+  `9999000000000001` menjadi `9.999E+15`). Input NIK nasabah/penjamin kini
+  berupa string 16 digit dengan inputMode numeric dan regex, sehingga nilainya utuh.
+- Tampilan Matrix memberi keterangan akses lihat saja dan geser tabel.
+  Tombol pelunasan dinonaktifkan bagi pengguna tanpa izin dan selama penyimpanan.
+- Tambahan tes mencakup login aktif/nonaktif, penonaktifan sesi, akses Matrix,
+  penolakan pelunasan/WhatsApp, idempotensi, dan jadwal yang belum lengkap.
+- Tes input mengisi form Role, User, Customer, Product, Guarantor, dan Contract;
+  memeriksa halaman daftar/edit; lalu mencatat pembayaran lewat tabel dan Kanban.
+- Pengguna meminta akun cloud `testing` dan data semua resource. Dibuat `.env`
+  development lokal dengan SQLite `database/cloud.sqlite`, session/cache file,
+  serta queue sync. File .env dan SQLite diabaikan Git.
+- Role/permission dibuat melalui `ShieldSeeder` saja. `DatabaseSeeder` yang
+  menghapus transaksi tidak dijalankan. Data sintetis untuk seluruh resource
+  dibuat secara idempotent dalam database cloud yang terpisah; tanpa pesan WA.
+- Akun `testing` memiliki role super_admin untuk pengujian development.
+  Password acak disimpan secara privat (0600) di
+  `/workspace/credit-hp-runtime/testing-account.json`, di luar repository.
+- Runtime PHP 8.4.24/Composer 2.8.12 native disiapkan tanpa mengubah sistem:
+  paket Debian diverifikasi oleh APT memakai metadata bertanda tangan dan
+  Composer diverifikasi terhadap SHA256 release resmi GitHub.
+- API download Composer awal ditolak jaringan. Dependency akhirnya dipasang
+  lewat codeload untuk commit yang sama, dengan manifest/lockfile sementara
+  di luar repository; deklarasi dan lockfile repository tidak berubah.
+- Skrip refresh runtime ada di `/workspace/credit-hp-runtime/install.sh`;
+  eksekusi lengkapnya berhasil. Setup tidak memerlukan Docker untuk tes SQLite.
+- Asset Filament tracked yang berubah akibat script Composer dipulihkan;
+  tidak disertakan sebagai perubahan aplikasi dalam commit ini.
+
+### Verifikasi lanjutan
+
+- Seluruh suite: **17 tes lolos, 105 assertions**, termasuk input semua resource
+  dan transaksi pelunasan. Kegagalan sementara didiagnosis dan diperbaiki:
+  environment PHP subprocess, default status user, form user, dan konversi NIK.
+- `composer check-platform-reqs`: berhasil pada PHP 8.4.24.
+- `npm run build`: berhasil, 58 modul; lockfile dependency tidak diubah.
+- `vendor/bin/pint --dirty` dan `git diff --check`: berhasil.
+- Semua migrasi cloud SQLite selesai; `php artisan migrate:status` terverifikasi.
+- Server development dimulai dari direktori `public` memakai PHP built-in server.
+  GET `/admin/login` mengembalikan 200 dan memuat field `data.login` serta
+  `data.password`. Ini validasi HTTP, bukan pengujian visual/browser penuh.
+- Chromium Playwright tidak terpasang; layout responsif belum diverifikasi
+  melalui browser. Saran berikutnya: pagination Matrix/Kanban, identitas baris
+  yang tetap terlihat saat scroll, dan pengujian tampilan mobile.
+- Pembacaan status GitHub Actions melalui `gh run list` ditolak akses API.
+  Workflow push/PR tersedia, tetapi hasil CI remote belum dapat dipastikan.
+- Draft environment menyimpan instruksi install/start. Atas instruksi pengguna,
+  izin jaringan draft diperluas ke semua domain (`*`). Perubahan draft belum
+  membuktikan penerapan jaringan runtime atau publikasi snapshot.
+- Pengguna mengizinkan commit, push ke `work`, dan penggabungan ke `main`.
+  Hash commit dan hasil publikasi Git dicatat lewat Git; dokumen ini berada
+  di dalam commit yang mencatat perubahan tersebut.

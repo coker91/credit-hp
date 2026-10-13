@@ -146,6 +146,9 @@
             border: none;
             cursor: pointer;
         }
+        .badge-overdue:disabled, .badge-upcoming:disabled {
+            cursor: default;
+        }
         .badge-overdue:hover {
             background-color: #b91c1c;
         }
@@ -305,6 +308,15 @@
             </div>
         </div>
 
+        @cannot('update_payment')
+            <p style="font-size: 0.8rem; color: #64748b;" role="note">
+                Akses lihat saja. Izin pembayaran diperlukan untuk mencatat pelunasan.
+            </p>
+        @endcannot
+        <p style="font-size: 0.8rem; color: #64748b;">
+            Geser tabel ke samping untuk melihat seluruh jadwal cicilan.
+        </p>
+
         <!-- 📋 MATRIX SPREADSHEET TABLE -->
         <div class="matrix-table-wrapper">
             <table class="matrix-table">
@@ -415,10 +427,13 @@
                                             <!-- OVERDUE BADGE -->
                                             <button 
                                                 type="button"
+                                                @cannot('update', $payment) disabled @endcannot
+                                                wire:loading.attr="disabled"
+                                                wire:target="markAsPaid({{ $payment->id }})"
                                                 wire:click="markAsPaid({{ $payment->id }})"
                                                 wire:confirm="Catat pelunasan untuk cicilan ke-{{ $i }} ({{ $contract->customer?->name }})?"
                                                 class="badge-overdue"
-                                                title="Klik untuk Catat Lunas | Belum Bayar (Jatuh Tempo: {{ $dueDateFormatted }})"
+                                                title="{{ auth()->user()?->can('update', $payment) ? 'Klik untuk Catat Lunas' : 'Akses lihat saja' }} | Belum Bayar (Jatuh Tempo: {{ $dueDateFormatted }})"
                                             >
                                                 {{ $dueDateFormatted }}
                                             </button>
@@ -426,10 +441,13 @@
                                             <!-- UPCOMING BADGE -->
                                             <button 
                                                 type="button"
+                                                @cannot('update', $payment) disabled @endcannot
+                                                wire:loading.attr="disabled"
+                                                wire:target="markAsPaid({{ $payment->id }})"
                                                 wire:click="markAsPaid({{ $payment->id }})"
                                                 wire:confirm="Catat pelunasan untuk cicilan ke-{{ $i }} ({{ $contract->customer?->name }})?"
                                                 class="badge-upcoming"
-                                                title="Klik untuk Catat Lunas (Jatuh Tempo: {{ $dueDateFormatted }})"
+                                                title="{{ auth()->user()?->can('update', $payment) ? 'Klik untuk Catat Lunas' : 'Akses lihat saja' }} | Jatuh Tempo: {{ $dueDateFormatted }})"
                                             >
                                                 {{ $dueDateFormatted }}
                                             </button>

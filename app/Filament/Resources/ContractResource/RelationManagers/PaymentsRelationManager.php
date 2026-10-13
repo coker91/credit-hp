@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ContractResource\RelationManagers;
 
+use App\Services\PaymentSettlement;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
@@ -86,6 +87,7 @@ class PaymentsRelationManager extends RelationManager
             ])
             ->recordActions([
                 Action::make('markAsPaid')
+                    ->visible(fn ($record): bool => auth()->user()?->can('update', $record) ?? false)
                     ->label('Catat Pelunasan')
                     ->icon('heroicon-m-check-circle')
                     ->color('success')
@@ -103,11 +105,11 @@ class PaymentsRelationManager extends RelationManager
                             ->required(),
                     ])
                     ->action(function ($record, array $data) {
-                        $record->update([
-                            'paid_amount' => $data['paid_amount'],
-                            'paid_at' => $data['paid_at'],
-                            'status' => 'paid',
-                        ]);
+                        app(PaymentSettlement::class)->settle(
+                            $record->id,
+                            (string) $data['paid_amount'],
+                            (string) $data['paid_at'],
+                        );
                     }),
 
                 EditAction::make(),

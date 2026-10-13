@@ -32,6 +32,10 @@ class FilamentUpgradeTest extends TestCase
     {
         Filament::setCurrentPanel(Filament::getPanel('admin'));
 
+        $user = User::factory()->create(['password_changed_at' => now()]);
+        $user->givePermissionTo(Permission::findOrCreate('page_MatrixCicilanPage', 'web'));
+        $this->actingAs($user);
+
         $unique = substr(hash('sha256', uniqid('', true)), 0, 16);
 
         $customer = Customer::create([
