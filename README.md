@@ -8,57 +8,62 @@ Aplikasi Web Management & Monitoring Angsuran Cicilan HP berbasis **PHP 8.3**, *
 
 Seluruh stack (PHP 8.3, Laravel 12, Nginx, MySQL, Redis, dan Evolution API WhatsApp Gateway) telah dibungkus dalam `docker-compose.yml`.
 
-### 1. Menjalankan Container
-Jalankan perintah berikut di terminal root proyek:
+### 1. Setup development
+
+Prasyarat: Docker dengan Compose v2 (mendukung `--wait`), Node.js 22, npm,
+Python 3, serta akses internet untuk mengunduh image dan dependensi.
 
 ```bash
-# 1. Start seluruh container (App, Nginx, MySQL, Redis, Evolution API)
-docker compose up -d
-
-# 2. Install dependency Composer (jika belum)
-docker compose exec app composer install
-
-# 3. Generate App Key
-docker compose exec app php artisan key:generate
-
-# 4. Jalankan Migrasi & Seeder Data Matrix awal
-docker compose exec app php artisan migrate:fresh --seed
+bash scripts/setup.sh
 ```
 
----
+Skrip membuat `.env` dengan kredensial acak hanya jika file belum ada,
+membangun aset, menyalakan aplikasi dan MySQL, memasang dependensi Composer,
+serta menjalankan migrasi tanpa menghapus data. `.env` yang sudah ada
+harus memiliki `DB_PASSWORD` dan `DB_ROOT_PASSWORD` yang sesuai dengan database.
+Mengganti password di `.env` tidak mengubah password volume MySQL yang sudah ada.
 
-## 📱 Akses Layanan & Integrasi WhatsApp Evolution API
+Konfigurasi native memakai `DB_HOST=127.0.0.1`; container aplikasi otomatis
+memakai `DB_HOST=db`. Nama database default adalah `credit_hp` dan pengguna
+`credit_hp_user`. Database tidak dipublikasikan ke host; untuk setup native,
+sediakan MySQL sendiri dan sesuaikan `.env`.
 
-| Layanan | URL / Port | Keterangan |
-|---|---|---|
-| **Aplikasi Credit HP** | `http://localhost:8000/admin` | Login Filament Admin (`admin@admin.com` / `password`) |
-| **Evolution API** | `http://localhost:8080` | Endpoint REST API Gateway |
-| **API Key Evolution API** | `429683C4C977415CAAFCCE10F7D57E11` | Set pada header `apikey` |
+Buka `http://localhost:8000/admin`. Setup tidak membuat akun admin otomatis.
+Untuk database demo baru dan kosong saja, seeder berikut membuat akun
+`admin@admin.com` / `password` **dan menghapus data transaksi lama**:
 
----
+```bash
+docker compose exec app php artisan db:seed
+```
 
-### 🟢 Langkah 2: Hubungkan Nomor WhatsApp ke Evolution API
+Jangan jalankan seeder ini pada database yang berisi data pengguna.
 
-1. **Buat Instance WhatsApp**:
-   Kirim request HTTP POST ke Evolution API (misal via cURL / Postman / PowerShell):
+### 2. Pengujian
 
-   ```bash
-   curl -X POST "http://localhost:8080/instance/create" \
-     -H "Content-Type: application/json" \
-     -H "apikey: 429683C4C977415CAAFCCE10F7D57E11" \
-     -d '{
-       "instanceName": "credit-hp",
-       "token": "credit-hp-secret-token",
-       "qrcode": true,
-       "integration": "WHATSAPP-BAILEYS"
-     }'
-   ```
+```bash
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan test
+```
 
-2. **Scan QR Code**:
-   Buka browser ke `http://localhost:8080/instance/connect/credit-hp` lalu scan QR Code menggunakan aplikasi WhatsApp di HP Anda.
+PHPUnit menggunakan SQLite di memori, terpisah dari database aplikasi.
+Ekstensi `pdo_sqlite` tersedia dalam Dockerfile. CI menjalankan pemeriksaan
+platform Composer, build frontend, dan tes pada setiap push/pull request.
 
-3. **Siap Digunakan**:
-   Setiap kali Anda menekan tombol **Kirim WA Warning** di halaman [Matrix Cicilan](file:///c:/laragon/www/credit-hp/app/Filament/Pages/MatrixCicilanPage.php) atau [Monitoring Tagihan](file:///c:/laragon/www/credit-hp/app/Filament/Resources/PaymentResource.php), pesan otomatis terkirim melalui Evolution API.
+### 3. WhatsApp opsional
+
+```bash
+docker compose --profile whatsapp up -d evolution-redis evolution-api
+```
+
+Isi `EVOLUTION_API_KEY` di `.env` jika memakai konfigurasi sendiri. Aplikasi
+container menggunakan `http://evolution-api:8080`; akses dari host memakai
+`http://localhost:8080`. Gunakan kunci dari `.env` dalam header `apikey`.
+Kredensial lama yang pernah tersimpan di repository perlu diganti pada layanan
+aktif. Konfigurasi image Evolution API perlu diverifikasi sebelum menghubungkan
+akun WhatsApp; skrip setup hanya memvalidasi aplikasi inti.
+
+Buat instance `credit-hp` melalui API gateway dan scan QR dari WhatsApp bila
+integrasi diperlukan. Setup tidak menghubungkan akun atau mengirim pesan.
 
 ---
 

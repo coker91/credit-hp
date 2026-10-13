@@ -11,7 +11,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
 use Filament\Facades\Filament;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Blade;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
@@ -19,7 +19,7 @@ use Tests\TestCase;
 
 class FilamentUpgradeTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     public function test_admin_login_page_renders_on_filament_five(): void
     {
