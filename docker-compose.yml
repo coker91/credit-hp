@@ -47,6 +47,8 @@ services:
     container_name: credit-hp-db
     restart: unless-stopped
     tty: true
+    ports:
+      - "127.0.0.1:3307:3306"
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-credit_hp}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
