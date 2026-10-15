@@ -3,6 +3,7 @@ services:
   # 1. Laravel 12 / PHP 8.3 Application Container
   # ---------------------------------------------------------------------------
   app:
+    image: credit-hp-app:local
     build:
       context: .
       dockerfile: Dockerfile
@@ -21,6 +22,27 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  # Enable only after installing dependencies, running migrations and configuring WhatsApp.
+  scheduler:
+    profiles: [reminders]
+    image: credit-hp-app:local
+    restart: unless-stopped
+    working_dir: /var/www
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - .:/var/www
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      EVOLUTION_API_URL: http://evolution-api:8080
+    networks:
+      - credit-hp-network
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
 
   # ---------------------------------------------------------------------------
   # 2. Nginx Web Server for Laravel
@@ -69,6 +91,7 @@ services:
   # 4. Redis Container for Evolution API
   # ---------------------------------------------------------------------------
   evolution-redis:
+    profiles: [whatsapp]
     image: redis:alpine
     container_name: credit-hp-evolution-redis
     restart: unless-stopped
@@ -80,11 +103,11 @@ services:
   # ---------------------------------------------------------------------------
   # 5. Evolution API Container (WhatsApp Gateway)
   # Repo: https://github.com/evolution-foundation/evolution-api
-  # Image: evolutionapi/evolution-api:v2.1.1
+  # Image: evoapicloud/evolution-api:v2.3.7
   # ---------------------------------------------------------------------------
   evolution-api:
     profiles: [whatsapp]
-    image: evolutionapi/evolution-api:v2.1.1
+    image: evoapicloud/evolution-api:v2.3.7
     container_name: credit-hp-evolution-api
     restart: unless-stopped
     ports:
@@ -94,19 +117,41 @@ services:
       - DOCKER_ENV_CI=true
       - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-}
-      - DATABASE_ENABLED=false
-      - DATABASE_PROVIDER=local
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://evolution:${EVOLUTION_DB_PASSWORD:-}@evolution-db:5432/evolution?schema=public
       - CACHE_REDIS_ENABLED=true
       - CACHE_REDIS_URI=redis://evolution-redis:6379/1
       - CACHE_REDIS_PREFIX_KEY=evolution
-      - LOG_LEVEL=ERROR,WARN,DEBUG,INFO,LOG
+      - LOG_LEVEL=ERROR,WARN
       - LOG_COLOR=true
     volumes:
       - evolution_instances:/evolution/instances
     networks:
       - credit-hp-network
     depends_on:
-      - evolution-redis
+      evolution-redis:
+        condition: service_started
+      evolution-db:
+        condition: service_healthy
+
+  evolution-db:
+    profiles: [whatsapp]
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: evolution
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${EVOLUTION_DB_PASSWORD:-}
+    volumes:
+      - evolution_dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - credit-hp-network
 
 networks:
   credit-hp-network:
@@ -118,4 +163,6 @@ volumes:
   redisdata:
     driver: local
   evolution_instances:
+    driver: local
+  evolution_dbdata:
     driver: local

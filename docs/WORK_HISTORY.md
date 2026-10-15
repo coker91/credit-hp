@@ -173,3 +173,55 @@ Tanggal: 13 Oktober 2026 (Asia/Jakarta).
 - Pengguna mengizinkan commit, push ke `work`, dan penggabungan ke `main`.
   Hash commit dan hasil publikasi Git dicatat lewat Git; dokumen ini berada
   di dalam commit yang mencatat perubahan tersebut.
+
+## 15 Oktober 2026 — pengingat WhatsApp H-1 dan jatuh tempo
+
+- Sebelum mengubah kode, menjalankan `git pull --ff-only origin main` dan
+  menerima commit `5cc7846` (port MySQL lokal 3307). Perubahan itu dipertahankan.
+- Mengikuti arahan terbaru pengguna: dua tahap pengingat per cicilan, H-1 dan
+  hari jatuh tempo, pukul 09.00 Asia/Jakarta, selama masih belum lunas.
+  Tidak menambahkan branch baru; pekerjaan dilakukan pada `main`.
+- Nomor bisnis pengirim yang diberikan pengguna disimpan dalam `.env` lokal
+  sebagai `WA_SENDER_NUMBER`; nomor nyata dan kredensial tidak dimasukkan Git.
+- Menambahkan `config/whatsapp.php` yang kompatibel dengan cache konfigurasi.
+  Menghapus fallback API key tetap dari service dan memvalidasi nomor penerima.
+- Menambahkan pemeriksaan instance/nomor pengirim Evolution sebelum pengiriman.
+  Nomor pengirim tetap harus dihubungkan secara nyata lewat QR oleh pemilik akun.
+- Menambahkan command `whatsapp:gateway status/create/connect`. QR disimpan
+  sebagai file privat dengan permission 0600; secret dan isi QR tidak dicetak.
+- Menambahkan command `whatsapp:reminders`, opsi `--dry-run`, batas 100 cicilan
+  per run, pemeriksaan jam lokal, dan scheduler setiap menit dengan mutex.
+- Menambahkan tabel/relasi riwayat pengingat dengan unique key per pembayaran
+  dan tahap. Klaim transaksi mencegah proses lain mengirim tahap yang sama.
+  Pesan manual memakai pencatatan yang sama untuk menekan pengiriman ganda.
+- Template berisi nama nasabah, nama barang, nominal cicilan per bulan, urutan
+  cicilan, tanggal jatuh tempo, dan nomor kontrak. Pengingat hari jatuh tempo
+  dibatalkan bila pembayaran sudah dilunasi sejak H-1.
+- Mencatat pesan yang diterima gateway, gagal, perlu diperiksa, sedang dikirim,
+  dan dilewati. HTTP 429 memakai jeda 15 menit, maksimal tiga percobaan.
+  Timeout/error server/response tidak pasti tidak diulang tanpa pemeriksaan.
+- Menambahkan menu admin Riwayat Pengingat WhatsApp, dibatasi izin
+  `view_any_payment`; aksi manual tetap memeriksa izin update pembayaran.
+- Memperbarui Compose ke image `evoapicloud/evolution-api:v2.3.7` dengan
+  PostgreSQL khusus gateway serta profile scheduler opsional. Image tag
+  diverifikasi tersedia di registry; konfigurasi mengacu source resmi 2.3.7.
+- Memperbarui `.env.example`, generator secret setup, README, dan panduan
+  lengkap `WHATSAPP.md`: setup, QR, konfigurasi, scheduler, template, kegagalan,
+  pengujian, serta perbedaan Evolution/Baileys dengan Cloud API resmi Meta.
+
+### Verifikasi
+
+- Suite lengkap: **41 tes lolos, 203 assertions** (24 tes baru WhatsApp).
+  Semua request WhatsApp pada tes memakai HTTP simulasi; tidak ada pesan nyata.
+- Cakupan baru: H-1 dan hari H, deduplikasi, pelunasan antar-tahap, WIB pada batas
+  hari UTC, pembatasan percobaan, pengirim salah/offline, QR privat, izin riwayat,
+  format respons gateway, serta perbaikan nomor yang gagal lewat aksi manual.
+- Build frontend, Pint, sintaks skrip setup, dan `git diff --check`: berhasil.
+- `docker compose` dengan profile `whatsapp` dan `reminders`: konfigurasi valid.
+- Migrasi tabel pengingat diterapkan pada database cloud SQLite lokal.
+  `whatsapp:reminders --dry-run` dan `schedule:list` terverifikasi.
+- Pengguna memilih menyiapkan gateway pada kesempatan berikutnya. Gateway
+  belum dipasangkan, API key belum diisi, dan pengingat otomatis tetap nonaktif.
+  Startup gateway Docker serta pengiriman nyata belum dinyatakan terverifikasi.
+- CI GitHub diperiksa setelah commit dipush ke `main`; detail run tersimpan
+  pada GitHub Actions untuk commit terkait.

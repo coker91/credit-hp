@@ -13,7 +13,7 @@ import secrets
 path = Path('.env')
 if not path.exists():
     content = Path('.env.example').read_text()
-    for key in ('DB_PASSWORD', 'DB_ROOT_PASSWORD', 'EVOLUTION_API_KEY'):
+    for key in ('DB_PASSWORD', 'DB_ROOT_PASSWORD', 'EVOLUTION_API_KEY', 'EVOLUTION_DB_PASSWORD'):
         content = content.replace(f'{key}=\n', f'{key}={secrets.token_hex(32)}\n')
     path.write_text(content)
     path.chmod(0o600)

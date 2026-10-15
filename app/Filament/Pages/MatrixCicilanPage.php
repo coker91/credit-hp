@@ -4,12 +4,11 @@ namespace App\Filament\Pages;
 
 use App\Models\Contract;
 use App\Models\Payment;
+use App\Services\PaymentReminderService;
 use App\Services\PaymentSettlement;
-use App\Services\WaService;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 
 class MatrixCicilanPage extends Page
@@ -119,24 +118,18 @@ class MatrixCicilanPage extends Page
             abort_unless(auth()->user()?->is_active, 403);
             Gate::authorize('update', $payment);
 
-            $customer = $payment->contract->customer;
-            $dueDate = Carbon::parse($payment->due_date)->translatedFormat('d F Y');
-            $nominal = 'Rp '.number_format((float) $payment->amount, 0, ',', '.');
+            $result = app(PaymentReminderService::class)->send($payment->id, automatic: false);
 
-            $message = "Halo Bpk/Ibu *{$customer->name}*,\n\n"
-                ."Kami ingin mengingatkan angsuran cicilan HP Anda untuk No. Kontrak *{$payment->contract->contract_number}* (Cicilan Ke-{$payment->installment_number}) sebesar *{$nominal}* akan/telah jatuh tempo pada *{$dueDate}*.\n\n"
-                ."Mohon segera melakukan pembayaran. Abaikan jika sudah lunas.\n\n"
-                .'Terima kasih.';
-
-            $sent = WaService::sendMessage($customer->phone_number, $message);
-
-            if ($sent) {
-                $payment->update(['wa_reminder_sent_at' => now()]);
-
+            if ($result === 'sent') {
                 Notification::make()
                     ->title('Pesan WA Warning Berhasil Dikirim')
                     ->success()
                     ->send();
+            } elseif (in_array($result, ['skipped', 'unknown'], true)) {
+                Notification::make()
+                    ->title($result === 'skipped' ? 'Tidak ada pesan baru yang dikirim' : 'Status pengiriman perlu diperiksa')
+                    ->body('Periksa Riwayat Pengingat WhatsApp sebelum mencoba lagi.')
+                    ->warning()->send();
             } else {
                 Notification::make()
                     ->title('Gagal Mengirim Pesan WA')

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Payment extends Model
 {
@@ -22,12 +23,17 @@ class Payment extends Model
     ];
 
     protected $casts = [
-        'due_date'            => 'date',
-        'paid_at'             => 'datetime',
+        'due_date' => 'date',
+        'paid_at' => 'datetime',
         'wa_reminder_sent_at' => 'datetime',
-        'amount'              => 'decimal:2',
-        'paid_amount'         => 'decimal:2',
+        'amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
     ];
+
+    public function whatsappReminders(): HasMany
+    {
+        return $this->hasMany(WhatsappReminder::class);
+    }
 
     /**
      * Relasi balik ke Kontrak Utama (N:1).

@@ -49,21 +49,16 @@ PHPUnit menggunakan SQLite di memori, terpisah dari database aplikasi.
 Ekstensi `pdo_sqlite` tersedia dalam Dockerfile. CI menjalankan pemeriksaan
 platform Composer, build frontend, dan tes pada setiap push/pull request.
 
-### 3. WhatsApp opsional
+### 3. Pengingat WhatsApp otomatis
 
-```bash
-docker compose --profile whatsapp up -d evolution-redis evolution-api
-```
+Pengingat dikirim pada **H-1 dan hari jatuh tempo pukul 09.00 WIB** jika cicilan
+belum lunas, dengan pencatatan terpisah untuk mencegah pesan berulang.
+Template memuat nama nasabah, nama barang, nominal cicilan per bulan dan tanggal.
 
-Isi `EVOLUTION_API_KEY` di `.env` jika memakai konfigurasi sendiri. Aplikasi
-container menggunakan `http://evolution-api:8080`; akses dari host memakai
-`http://localhost:8080`. Gunakan kunci dari `.env` dalam header `apikey`.
-Kredensial lama yang pernah tersimpan di repository perlu diganti pada layanan
-aktif. Konfigurasi image Evolution API perlu diverifikasi sebelum menghubungkan
-akun WhatsApp; skrip setup hanya memvalidasi aplikasi inti.
-
-Buat instance `credit-hp` melalui API gateway dan scan QR dari WhatsApp bila
-integrasi diperlukan. Setup tidak menghubungkan akun atau mengirim pesan.
+Panduan lengkap pemasangan Evolution API, QR nomor pengirim, konfigurasi,
+pengaktifan scheduler, simulasi dan pemeriksaan kegagalan ada di
+[WHATSAPP.md](WHATSAPP.md). Fitur otomatis tetap nonaktif sampai gateway siap
+dan `WA_REMINDERS_ENABLED=true` diatur.
 
 ---
 

@@ -5,8 +5,8 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PaymentResource\Pages\ListPayments;
 use App\Filament\Resources\PaymentResource\Pages\PaymentKanban;
 use App\Models\Contract;
+use App\Services\PaymentReminderService;
 use App\Services\PaymentSettlement;
-use App\Services\WaService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -251,24 +251,18 @@ class PaymentResource extends Resource
                         abort_unless(auth()->user()?->is_active, 403);
                         Gate::authorize('update', $nextUnpaid);
 
-                        $customer = $record->customer;
-                        $dueDate = Carbon::parse($nextUnpaid->due_date)->translatedFormat('d F Y');
-                        $nominal = 'Rp '.number_format((float) $nextUnpaid->amount, 0, ',', '.');
+                        $result = app(PaymentReminderService::class)->send($nextUnpaid->id, automatic: false);
 
-                        $message = "Halo Bpk/Ibu *{$customer->name}*,\n\n"
-                            ."Kami ingin mengingatkan bahwa angsuran cicilan HP Anda untuk No. Kontrak *{$record->contract_number}* (Cicilan Ke-{$nextUnpaid->installment_number}) sebesar *{$nominal}* akan/telah jatuh tempo pada *{$dueDate}*.\n\n"
-                            ."Mohon segera melakukan pembayaran. Abaikan pesan ini jika Anda sudah melakukan pelunasan.\n\n"
-                            .'Terima kasih.';
-
-                        $sent = WaService::sendMessage($customer->phone_number, $message);
-
-                        if ($sent) {
-                            $nextUnpaid->update(['wa_reminder_sent_at' => now()]);
-
+                        if ($result === 'sent') {
                             Notification::make()
                                 ->title('Pesan WA Berhasil Dikirim')
                                 ->success()
                                 ->send();
+                        } elseif (in_array($result, ['skipped', 'unknown'], true)) {
+                            Notification::make()
+                                ->title($result === 'skipped' ? 'Tidak ada pesan baru yang dikirim' : 'Status pengiriman perlu diperiksa')
+                                ->body('Periksa Riwayat Pengingat WhatsApp sebelum mencoba lagi.')
+                                ->warning()->send();
                         } else {
                             Notification::make()
                                 ->title('Gagal Mengirim WA')
